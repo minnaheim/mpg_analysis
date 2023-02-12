@@ -1,0 +1,155 @@
+---
+title: "mpg - Data Analysis and Visualisation"
+author: "Minna Heim"
+date: "2023-02-11"
+output: html_document
+---
+
+```{r e = FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Inspecting the Dataset
+
+First, we will look at the dataset, the variables and observations (and the different type of data entries per column) to get an overview of what we can analyse with this dataset. Since this is a dataset from R, we also don't really need to clean it, since it is tidy and ready for analysis.
+
+
+```{r}
+head(mpg)
+```
+
+After inspecting the dataset, I have decided to focus my analysis on three existing variables: manufacturers (car manufacturer name), hwy (highway miles per gallon) and cty (city miles per gallon). With these three variables I can create a **goal for this analysis, which is to find out, which car manufacturer (on average) produces the most fuel efficient cars** . 
+
+# Analysing the Dataset
+
+## Counting Entries
+
+To execute the goal of the analysis, we should first get an overview of the number of entries per manufacturer:
+
+```{r}
+table_count <- table(mpg$manufacturer)
+table_count
+```
+
+This table gives us a good overview of the amount of observations per manufacturer. Still, to get a better impression at a glance, I will plot the Amount of cars per manufacturer, so that we can easily compare the manufacturers. 
+
+```{r}
+df_count <- as.data.frame(table_count)
+
+count_plot <- ggplot(df_count, aes(x = Var1, y = Freq)) + 
+              geom_col() + scale_x_discrete(guide = guide_axis(angle = 90)) + 
+              labs(title =  "Amount of Cars in Dataset per Manufacturer", x = "Manufacturer", y = "Amount of Cars")
+count_plot
+```
+It is important that we counted and plotted the observations per manufacturer, because if at some part in the further analysis some manufacturers have a smaller range in fuel efficiency, we can backtrack it to a smaller pool of observations. E.g. when looking at the "mean plot" (further along) we can see that manufacturers lincoln and mercury have an especially small range of  average miles per gallon. We see from the table below, that this is not necessarily due to these cars having a similar fuel consumption, but potentially because there are only 3 observations for the manufacturer lincoln and 4 for the manufacturer mercury. 
+
+On the other hand, we can trust that we get a more accurate representation of manufacturers fuel efficiency when there is a large set of observations (e.g. for dodge, toyota, volkswagen and ford).
+
+## Analysis with Average & Median
+
+To fulfill the goal of the analysis (which car manufacturer produces the most fuel efficient car model), we will focus our analysis on three main variables - manufacturer, cty, and hwy.
+
+One way to analyse the fuel efficiency overall, is to create another column in the dataset, which analyses the average fuel efficiency between the city miles per gallon and highway miles per gallon
+
+```{r}
+# we are naming this dataset fuel_mpg because it focuses on the fuel efficiency analysis:
+
+fuel_mpg <- mpg %>% mutate(mean_fuel = (hwy + cty)/2)
+head(fuel_mpg)
+
+```
+
+
+```{r}
+mean_plot <- ggplot(fuel_mpg, aes(mean_fuel, manufacturer)) + geom_boxplot() + labs(title =  "Average Miles per Gallon depending on the Car Manufacturer", x = "Average Miles per Gallon ", y = "Manufacturer")
+
+mean_plot
+```
+This graph shows us the following things:
+
+  1. It shows us the range of the fuel efficiency of all of the car manufacturers (although we should take this with a grain of salt, because there are fewer observations of some car manufacturers in the dataset)
+  2. We can see the median value (the middle value of miles per gallon) of each manufacturer. 
+  3. We see the potential outliers of manufacturers. For example, Volkswagen produces some cars, that have exceptional mileage per gallon, and jeep has one observation (car model) with very bad mileage per gallon.
+
+
+Through this graph, we can already see a great deal of which car manufacturer will most likely produce the most fuel efficient car. Still, the box plot does not show the average fuel efficiency, only the middle efficiency. So, to get accurate results, i will create a graph with the average fuel efficiency overall, and the averagy city and highway mileage. 
+
+
+```{r}
+# this dataframe contains the average value of the mean miles per gallon
+mean_per_manufacturer <- fuel_mpg %>% group_by(manufacturer) %>% summarise(mean_per_manufacturer = mean(mean_fuel)) %>% arrange(desc(mean_per_manufacturer))
+
+mean_per_manufacturer
+```
+
+
+
+
+
+```{r}
+# this dataframe contains the average value of the city miles per gallon
+mean_per_manufacturer_cty <- fuel_mpg %>% group_by(manufacturer) %>% summarise(mean_per_manufacturer = mean(cty)) %>% arrange(desc(mean_per_manufacturer))
+
+mean_per_manufacturer_cty
+
+```
+
+```{r}
+# this dataframe contains the average value of the highway miles per gallon
+mean_per_manufacturer_hwy <- fuel_mpg %>% group_by(manufacturer) %>% summarise(mean_per_manufacturer = mean(hwy)) %>% arrange(desc(mean_per_manufacturer))
+
+mean_per_manufacturer_hwy
+
+```
+
+```{r}
+
+df_plot <- mean_per_manufacturer_hwy %>% mutate(Type = "highway miles per gallon") %>% bind_rows(mean_per_manufacturer_cty %>% mutate(Type = "city miles per gallon")) %>% bind_rows(mean_per_manufacturer %>% mutate(Type = "average miles per gallon"))
+
+
+# I decided to rearrange the manufacturers on the graph not in alphabetical order as done in the graphs before, but in descending average mileage per gallon, to make the results more visible.
+
+cty_hwy <- ggplot(df_plot, aes( x = reorder(manufacturer, -mean_per_manufacturer), y = mean_per_manufacturer, color = Type)) + 
+           geom_point() + scale_x_discrete(guide = guide_axis(angle = 90)) + 
+           labs(title =  "Average Miles per Gallon depending on the Car Manufacturer", subtitle = "This Graph shows three points per manufacturer: the average-, city- and highway miles per gallon", x = "Manufacturer ", y = "Average Miles per Gallon")
+
+cty_hwy
+
+```
+
+This graph shows us the most fuel efficient car manufacturer, which is Honda. Each of the three average miles per gallon (per observation) is higher than any other manufacturer, which means, that on average this manufacturer produces cars with very good mileage per gallon values. 
+
+We can see a trend in this data set: the car manufacturers from the UK and the US generally show low mileage per gallon values, means these manufacturers produce less fuel efficient cars, compared to the Asian and German Manufacturers. 
+
+
+## Analysing Dependencies
+ 
+Although the goal of the analysis is met, aka I know which car manufacturer produces on average the most fuel efficient car, it would be good to know which factors contribute to a miles per gallon values. 
+One way to do this, is to create a Multivariate Regression, which analyses the correlation of the indpendent variables with the dependent variable.
+
+For this, I have created two MLR models, one which analyses the dependency of the city miles per gallon and the engine displacement in liters, year of manufacturing and number of cylinders, and the other which analyses the dependency of highway miles per gallon and he engine displacement in liters, year of manufacturing and number of cylinders.
+
+I have refrained from using the independent variables hwy and mean_fuel to find the dependent variables cty and vice versa because they are bound to have a close correlation.
+
+```{r}
+
+mlr_model_cty <- lm(cty ~ displ + year + cyl, data = fuel_mpg)
+summary(mlr_model_cty)
+
+```
+We can see that if the number of cylinders is increased by one unit (one more cylinder), that the city miles per gallon decreases on average by 1.21 miles per gallon (holding all else constant). Similarly, if we increase the displacement by 1 liter, then the city miles per gallon decreases on average by 1.26 miles per gallon (holding all else constant). Both of these variables are statistically significant
+
+This means that displacement and cylinders have a negative relationship with city miles per gallon.
+
+
+```{r}
+mlr_model_hwy <- lm(hwy ~ displ + year + cyl, data = fuel_mpg)
+summary(mlr_model_hwy)
+```
+
+Here, we can see that if the number of cylinders is increased by one unit (one more cylinder), that the highway miles per gallon decreases on average by 1.31 miles per gallon (holding all else constant).If we increase the displacement by 1 liter, then the city miles per gallon decreases on average by 2.1 miles per gallon (holding all else constant). Both of these variables are statistically significant.
+
+
+This means that displacement and cylinders have a negative relationship with highway miles per gallon, but here, compared to city miles per gallon, displacement has a greater negative effect on mileage than in cities, and number of cylinders also has a little bit of a more negative effect on mileage per gallon. 
+
