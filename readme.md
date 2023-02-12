@@ -1,5 +1,5 @@
-# Income_Education_and_Gender
-This is a Data Analytics and Visualization Project I did in my free time, using the `ACS.csv` datasheet included in the repository. I know the title is a mouthful, sorry :)
+# MPG Analysis
 
-You can look at the HTML version under this [link](https://minnaheim.github.io/
-mpg_analysis/)!
+Using the dataset mpg from R, I analysed the fuel efficiency of different car manufacturers and analysed the correlation between fuel efficiency (miles per gallon) and variables such as year of manufacture, number of cylinders and displacement of engines.
+
+You can look at the HTML version under this [link](https://minnaheim.github.io/mpg_analysis/) !
